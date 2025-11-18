@@ -816,8 +816,8 @@ class LatexPrinter(Printer):
                 tex += r"%s %s" % (diff_symbol, self._print(x))
             else:
                 tex += r"%s %s^{%s}" % (diff_symbol,
-                                        self.parenthesize_super(self._print(x)),
-                                        self._print(num))
+                                             self.parenthesize_super(self._print(x)),
+                                             self._print(num))
 
         if dim == 1:
             tex = r"\frac{%s}{%s}" % (diff_symbol, tex)
@@ -825,19 +825,26 @@ class LatexPrinter(Printer):
             tex = r"\frac{%s^{%s}}{%s}" % (diff_symbol, self._print(dim), tex)
 
         precedence = PRECEDENCE["Mul"]
+    
+    # 🐛 FIX for issue 28524: Ensure Mul is parenthesized if a custom mul_symbol is used.
+    # The existing precedence bump is insufficient for Mul when using strict=True.
+        if self._settings['mul_symbol'] and expr.expr.is_Mul:
+            return r"%s %s" % (tex, self._add_parens(self._print(expr.expr)))
+    
         if self._settings['mul_symbol']:
-            # Nudge up the precedence so d/dx (f(x) * g(x)) also gets parenthesized
+        # Nudge up the precedence so d/dx (f(x) * g(x)) also gets parenthesized
             precedence += 1
+        
         if any(i.could_extract_minus_sign() for i in expr.args):
             return r"%s %s" % (tex, self.parenthesize(expr.expr,
-                                                  precedence,
-                                                  is_neg=True,
-                                                  strict=True))
+                                                 precedence,
+                                                 is_neg=True,
+                                                 strict=True))
 
         return r"%s %s" % (tex, self.parenthesize(expr.expr,
-                                                  precedence,
-                                                  is_neg=False,
-                                                  strict=True))
+                                                 precedence,
+                                                 is_neg=False,
+                                                 strict=True))
 
     def _print_Subs(self, subs):
         expr, old, new = subs.args
